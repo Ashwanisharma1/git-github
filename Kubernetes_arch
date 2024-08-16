@@ -1,1 +1,9 @@
+Kubernetes comes with client-server architecture. Master being installed on single node and worker on many linux nodes.
 
+Master:
+Api Server - The API server is a component of the Kubernetes control plane that exposes the Kubernetes API. 
+It is like an initial gateway to the cluster that listens to updates or queries via CLI like Kubectl.
+Kubectl communicates with API Server to inform what needs to be done like creating pods or deleting pods etc. 
+It also works as a gatekeeper. It generally validates requests received and then forwards them to other processes.
+No request can be directly passed to the cluster, 
+it has to be passed through the API Server.
