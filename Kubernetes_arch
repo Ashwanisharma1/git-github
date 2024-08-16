@@ -1,9 +1,24 @@
 Kubernetes comes with client-server architecture. Master being installed on single node and worker on many linux nodes.
 
-Master:
-Api Server - The API server is a component of the Kubernetes control plane that exposes the Kubernetes API. 
-It is like an initial gateway to the cluster that listens to updates or queries via CLI like Kubectl.
-Kubectl communicates with API Server to inform what needs to be done like creating pods or deleting pods etc. 
-It also works as a gatekeeper. It generally validates requests received and then forwards them to other processes.
-No request can be directly passed to the cluster, 
-it has to be passed through the API Server.
+Master Architecture:
+The API server is a component of the Kubernetes control plane that exposes the Kubernetes API. It is like an initial gateway to the cluster that listens to updates or queries via CLI like Kubectl. Kubectl communicates with API Server to inform what needs to be done like creating pods or deleting pods etc. It also works as a gatekeeper. It generally validates requests received and then forwards them to other processes. No request can be directly passed to the cluster, it has to be passed through the API Server.
+
+Kube Schedule: 
+When API Server receives a request for Scheduling Pods then the request is passed on to the Scheduler. It intelligently decides on which node to schedule the pod for better efficiency of the cluster.
+
+Etcd:
+It is a key-value store of a Cluster. The Cluster State Changes get stored in the etcd. It acts as the Cluster brain because it tells the Scheduler and other processes about which resources are available and about cluster state changes.
+
+Kube-Controller-Manager:
+The kube-controller-manager is responsible for running the controllers that handle the various aspects of the cluster’s control loop. These controllers include the replication controller, which ensures that the desired number of replicas of a given application is running, and the node controller, which ensures that nodes are correctly marked as “ready” or “not ready” based on their current state.
+
+Node Architecture:
+
+1. Container runtime
+A container runtime is needed to run the application containers running on pods inside a pod. Example-> Docker
+
+2. kubelet
+ kubelet interacts with both the container runtime as well as the Node. It is the process responsible for starting a pod with a container inside.
+
+3. kube-proxy
+It is the process responsible for forwarding the request from Services to the pods. It has intelligent logic to forward the request to the right pod in the worker node.
