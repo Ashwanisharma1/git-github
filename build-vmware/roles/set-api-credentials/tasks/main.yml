@@ -1,0 +1,5 @@
+- name: Set VMware API credentials
+  set_fact:
+    vmware_api_username: "{{ servers[build.vmware.vsphere]['username'] }}"
+    vmware_api_password: "{{ servers[build.vmware.vsphere]['password'] }}"
+    vmware_api_validate_certs: "{{ servers[build.vmware.vsphere]['validate_certs'] }}"
