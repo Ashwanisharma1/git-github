@@ -1,0 +1,11 @@
+- name: Create a temp directory to store the kickstart templates 
+  tempfile:
+    state: directory
+    prefix: "kickstart-templates-"
+  register: kickstart_templates_dir
+
+- name: Clone the kickstart templates repository to the temp directory
+  git:
+    repo: "{{ build.kickstart.templates }}"
+    dest: "{{ kickstart_templates_dir.path }}"
+    clone: yes
