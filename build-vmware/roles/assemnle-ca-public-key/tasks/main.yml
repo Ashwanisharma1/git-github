@@ -1,0 +1,23 @@
+- name: Create a temp directory to store the public keys from Gitea
+  tempfile:
+    state: directory
+    prefix: "public-ssh-keys-"
+  register: public_key_dir
+
+- name: Clone the public key repository to the temp directory
+  git:
+    repo: "{{ build.configure.sshd.public_keys }}"
+    dest: "{{ public_key_dir.path }}"
+    clone: yes
+
+- name: Generate a temp file to keep our CA public ssh keys
+  tempfile:
+    state: file
+    prefix: "ca-public-keys."
+  register: ca_public_keyfile
+
+- name: Build the public key file for the CA
+  assemble:
+    src: "{{ public_key_dir.path }}/{{ build.configure.sshd.user_ca_keys }}/"
+    dest: "{{ ca_public_keyfile.path }}"
+    validate: ssh-keygen -lf %s
