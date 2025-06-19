@@ -1,0 +1,53 @@
+# DATE  CREATOR  <EMAIL>
+cdrom
+text
+
+firstboot --enable
+skipx
+keyboard --vckeymap=ie --xlayouts='ie'
+lang en_IE.UTF-8
+
+network --hostname={{ build.kickstart.hostname }}
+network --onboot=yes --device=link --bootproto=static --ip={{ build.kickstart.ip }} --netmask={{ build.kickstart.netmask }} --gateway={{ build.kickstart.gateway }} --nameserver={{ build.kickstart.dns | join(',') }}
+
+rootpw --plaintext {{ build.kickstart.root_password }}
+reboot --eject
+timezone Europe/Dublin --utc
+bootloader --append=" rhgb crashkernel=auto " --location=mbr --boot-drive=sda
+
+firewall --disable
+authselect select minimal
+services --disabled="chronyd"
+
+clearpart --all
+clearpart --initlabel --drives=sda
+part /boot --fstype=xfs  --size=1024 --ondisk=sda --fsoptions="defaults,nosuid,nodev,noexec"
+part /boot/efi --fstype=efi --size=600 --ondisk=sda --label="EFI System Partition"
+part pv.01 --size=8000 --grow --ondisk=sda
+volgroup vg00 pv.01
+logvol swap           --vgname=vg00 --size={{ build.kickstart.swap_mb | default(4096) }}   --name=swap   --fstype swap
+logvol /opt           --vgname=vg00 --size={{ build.kickstart.opt_mb | default(2048) }}   --name=opt    --fstype xfs
+logvol /usr           --vgname=vg00 --size={{ build.kickstart.usr_mb | default(5120) }}   --name=usr    --fstype xfs
+logvol /tmp           --vgname=vg00 --size={{ build.kickstart.tmp_mb | default(4096) }}   --name=tmp    --fstype xfs  --fsoptions=defaults,nosuid,nodev,noexec
+logvol /var           --vgname=vg00 --size={{ build.kickstart.var_mb | default(4096) }}   --name=var    --fstype xfs  --fsoptions=defaults,nosuid,nodev
+logvol /var/log/audit --vgname=vg00 --size={{ build.kickstart.audit_mb | default(5120) }}   --name=audit  --fstype xfs  --fsoptions=defaults,nosuid,nodev,noexec
+logvol /var/cache/dnf --vgname=vg00 --size={{ build.kickstart.dnf_mb | default(4096) }}   --name=dnf    --fstype xfs  --fsoptions=defaults,nosuid,nodev
+logvol /var/tmp       --vgname=vg00 --size={{ build.kickstart.vartmp_mb | default(4096) }}   --name=vartmp --fstype xfs  --fsoptions=defaults,nosuid,nodev,noexec
+logvol /var/log       --vgname=vg00 --size={{ build.kickstart.log_mb | default(4096) }}   --name=log    --fstype xfs  --fsoptions=defaults,nosuid,nodev,noexec
+logvol /home          --vgname=vg00 --size={{ build.kickstart.home_mb | default(2048) }}   --name=home   --fstype xfs  --fsoptions=defaults,nosuid,nodev
+logvol /              --vgname=vg00 --size={{ build.kickstart.root_mb | default(10240) }}  --name=root   --fstype xfs
+
+%packages
+@^minimal-environment
+kexec-tools
+-iwl*-firmware
+-plymouth
+%end
+
+%post
+chage -d $(date +%Y-%m-%d) root
+cat <<EOF > /etc/ssh/{{ build.configure.sshd.user_ca_keys }}.pub
+{{ lookup('file', '{{ ca_public_keyfile.path }}') }}
+EOF
+echo 'TrustedUserCAKeys /etc/ssh/{{ build.configure.sshd.user_ca_keys }}.pub' >> /etc/ssh/sshd_config
+%end
