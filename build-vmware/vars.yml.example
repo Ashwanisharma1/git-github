@@ -1,0 +1,9 @@
+ servers:
+    vsphere1.iwater.ie:
+      username: 'username'
+      password: 'password'
+      validate_certs: false
+    vsphere2.iwater.ie:
+      username: 'username'
+      password: 'password'
+      validate_certs: false
