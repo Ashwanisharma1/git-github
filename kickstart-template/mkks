@@ -1,0 +1,274 @@
+#!/usr/bin/env bash
+
+function usage {
+
+    iam=$(basename $0)
+
+    echo "usage: $iam follwed by the mandatory options below"
+    echo
+    echo "Example: $iam -h box01.company.com -d ens192 -i 192.168.1.1 -n 255.255.255.0 -g 192.168.1.254 -r 192.168.10.1,192.168.10.2 -e miles.barry@ervia.ie -c \"Miles Barry\""
+    echo
+    echo "  -h|--hostname    FQDN to use"
+    echo "  -d|--device      Network device name"
+    echo "  -i|--ip          IP address"
+    echo "  -n|--netmask     Netmask"
+    echo "  -g|--gateway     Default gateway IP address"
+    echo "  -r|--nameserver  DNS server IP address or addresses (comma separated)"
+    echo "  -c|--creator     Full name of the creator in quotes"
+    echo "  -e|--email       email address of the creator"
+    echo
+    echo "optional values:"
+    echo "  --vlan [id]      Specify a numeric VLAN id to use"
+    echo "  --disk [device]  Specify a alternative disk, default is sda"
+    echo
+    echo "optional switches:"
+    echo "  --iso            Generate an ISO image"
+    echo "  --img            Generate an IMG disk (requires sudo rights)"
+    echo "  --no-resolve     Don't force resolution check of FQDN"
+    echo "  --install        Install the kickstart files to /var/www/html/ks (requires sudo rights)"
+    echo "  --log            Log /var/www/html/ks/ksi.log (requires sudo rights)"
+    echo "  --help           This help information"
+    echo
+    exit 1
+
+}
+
+function validate_ip {
+
+    ipcalc -sc $1
+
+    if [ ! $? -eq 0 ]; then
+      echo "$2"
+      exit 1
+    fi
+
+} 
+
+
+function can_sudo {
+
+    sudo -v &>/dev/null
+
+    if [ ! $? -eq 0 ]; then
+      echo "error: your user does not have sudo rights"
+      exit 1
+    fi
+
+}
+
+# If no args passed show the help
+
+if [ $# -eq 0 ]; then
+    usage
+fi
+
+# Set any default variables
+
+KS_NO_RESOLVE=false
+KS_ISO=false
+KS_LOG=false
+KS_INSTALL=false
+KS_DISK="sda"
+KS_TEMPLATE="master-rhel8.cfg"
+
+# Parse the arguments
+
+while [[ $# -gt 0 ]]; do
+  key="$1"
+
+  case $key in
+    -h|--hostname)
+      KS_HOSTNAME="$2"
+      shift 2 
+      ;;
+    -d|--device)
+      KS_DEVICE="$2"
+      shift 2
+      ;;
+    -i|--ip)
+      KS_IP="$2"
+      shift 2
+      ;;
+    -n|--netmask)
+      KS_NETMASK="$2"
+      shift 2
+      ;;
+    -g|--gateway)
+      KS_GATEWAY="$2"
+      shift 2
+      ;;
+    -r|--nameserver)
+      KS_NAMESERVER="$2"
+      shift 2
+      ;;
+    -c|--creator)
+      KS_CREATOR="$2"
+      shift 2
+      ;;
+    -e|--email)
+      KS_EMAIL="$2"
+      shift 2
+      ;;
+    --vlan)
+      KS_VLAN="$2"
+      shift 2
+      ;;
+    --disk)
+      KS_DISK="$2"
+      shift 2
+      ;;
+    --no-resolve)
+      KS_NO_RESOLVE=true
+      shift
+      ;;
+    --iso)
+      if [ ! command -v mkisofs &>/dev/null ]; then
+        echo "error: mkisofs not installed"
+        exit 1
+      fi
+      KS_ISO=true
+      shift
+      ;;
+    --img)
+      can_sudo
+      KS_IMG=true
+      shift
+      ;;
+    --log)
+      can_sudo
+      KS_LOG=true
+      shift
+      ;;
+    --install)
+      can_sudo
+      KS_INSTALL=true
+      shift
+      ;;
+    --help)
+      usage
+      ;;
+    *)
+      echo "error: unknown option $1"
+      exit 1
+      ;;
+  esac
+done
+
+# Check all required variables are set
+
+if [[ -z $KS_HOSTNAME \
+   || -z $KS_EMAIL \
+   || -z $KS_DEVICE \
+   || -z $KS_IP \
+   || -z $KS_NETMASK \
+   || -z $KS_GATEWAY \
+   || -z $KS_NAMESERVER \
+   || -z $KS_CREATOR ]]; then
+  echo "error: mandatory options not complete"
+  exit 1
+fi
+
+if [ ! -f "$KS_TEMPLATE" ]; then
+    echo "error: $KS_TEMPLATE not found"
+    exit 1
+fi
+
+# Check that the hostname resolves
+
+if [ "$KS_NO_RESOLVE" = false ]; then
+
+  getent hosts $KS_HOSTNAME &>/dev/null
+
+  if [ ! $? -eq 0 ]; then
+    echo "error: resolving of $KS_HOSTNAME failed"
+    exit 1
+  fi
+
+fi
+
+# Check that the IP address passed is formatted correctly
+
+validate_ip "$KS_IP" "error: IP address $KS_IP is invalid"
+
+# Check that the netmask specified is formatted correctly
+
+validate_ip "$KS_NETMASK" "error: netmask address $KS_NETMASK is invalid"
+
+# Check that the gateway specified is formatted correctly
+
+validate_ip "$KS_GATEWAY" "error: gateway address $KS_GATEWAY is invalid"
+
+# Check the DNS settings are formatted correctly
+
+for n in $(echo $KS_NAMESERVER | sed "s/,/ /g"); do
+  validate_ip "$n" "error: DNS address $n is invalid"
+done
+
+# Take the hostname part of the FQDN as the kickstart filename
+
+KS_FILENAME=$(echo $KS_HOSTNAME | cut -d'.' -f1)
+
+# Get the current date in YYYY-MM-DD HH:MM:SS format
+
+KS_DATE=$(date +"%Y-%m-%d %H:%M:%S")
+
+# Replace all fields with variable contents
+
+cat master-rhel8.cfg | sed "s/FQDN/$KS_HOSTNAME/g; \
+                            s/INTERFACE/$KS_DEVICE/g; \
+                            s/IP_ADDRESS/$KS_IP/g; \
+                            s/NETMASK/$KS_NETMASK/g; \
+                            s/GATEWAY/$KS_GATEWAY/g; \
+                            s/NAMESERVER/$KS_NAMESERVER/g; \
+                            s/CREATOR/$KS_CREATOR/g; \
+                            s/EMAIL/$KS_EMAIL/g; \
+                            s/sda/$KS_DISK/g; \
+                            s/DATE/$KS_DATE/g" > $KS_FILENAME.cfg
+
+# If VLAN is specified add it to the network configuration
+
+if [ ! -z "$KS_VLAN" ]; then
+  sed -i '/--nameserver/ s/$/ --vlanid='"$KS_VLAN"'/' $KS_FILENAME.cfg
+fi
+
+# If requested to build an ISO file then build using mkisofs
+
+if [ "$KS_ISO" = true ]; then
+  tmp_dir=$(mktemp -d)
+  cp -a $KS_FILENAME.cfg $tmp_dir/ks.cfg
+  mkisofs -V OEMDRV -o $KS_FILENAME.iso $tmp_dir &>/dev/null
+  rm -rf $tmp_dir
+fi
+
+# If requested to build an IMG file
+
+if [ "$KS_IMG" = true ]; then
+  tmp_dir=$(mktemp -d)
+  dd if=/dev/zero of=$KS_FILENAME.img bs=1024 count=1024 &>/dev/null
+  yes | mke2fs -t ext2 -L OEMDRV $KS_FILENAME.img &>/dev/null
+  sudo mount $KS_FILENAME.img $tmp_dir &>/dev/null
+  sudo cp -a $KS_FILENAME.cfg $tmp_dir/ks.cfg &>/dev/null
+  sudo umount $tmp_dir &>/dev/null
+  rm -rf $tmp_dir
+fi
+
+# Optionally write to log
+
+if [ "$KS_LOG" = true ]; then
+  if [ ! -f "/var/www/html/ks/ksi.log" ]; then
+    echo "error: log target /var/www/html/ks/ksi.log not found"
+    exit 1
+  fi
+  export KS_CREATOR KS_FILENAME KS_DATE KS_IP
+  sudo -E bash -c 'echo "$KS_CREATOR created $KS_FILENAME on $KS_DATE IP=$KS_IP" >> /var/www/html/ks/ksi.log'
+fi
+
+# Optionally install the generated files to /var/www/html/ks directory
+
+if [ "$KS_INSTALL" = true ]; then
+
+  sudo cp {$KS_FILENAME.cfg,$KS_FILENAME.iso} /var/www/html/ks/ &>/dev/null || true
+  sudo chown $(stat --printf "%U:%G" /var/www/html/ks) /var/www/html/ks/$KS_FILENAME.* || true
+  sudo chmod u=rw,g=r,o=r /var/www/html/ks/$KS_FILENAME.* || true
+
+fi
