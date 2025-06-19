@@ -1,0 +1,41 @@
+- name: Create a temp directory to place the kickstart
+  tempfile:
+    state: directory
+  register: ksdir
+
+- name: Template the kickstart file
+  template:
+    src: "{{ kickstart_templates_dir.path }}/{{ build.vmware.create.guest }}.j2"
+    dest: "{{ ksdir.path }}/ks.cfg"
+
+- name: Create a temp file to store the ISO
+  tempfile:
+    state: file
+  register: isofile
+
+- name: Create ISO file for kickstart configuration
+  community.general.iso_create:
+    src_files:
+      - "{{ ksdir.path }}/ks.cfg"
+    dest_iso: "{{ isofile.path }}"
+    interchange_level: 3
+    vol_ident: OEMDRV
+
+- name: Create the facts for the kickstart datastore and path
+  set_fact:
+    ks_ds: "{{ build.vmware.create.iso.split(' ')[0][1:-1] }}"
+    ks_path: "{{ build.vmware.create.iso.split(' ')[1] | dirname }}/{{ build.vmware.create.name }}-kickstart.iso"
+
+- debug:
+    var: ks_ds,ks_path
+
+- name: Upload the kickstart ISO to the datastore
+  community.vmware.vsphere_copy:
+    hostname: '{{ build.vmware.vsphere }}'
+    username: "{{ vmware_api_username }}"
+    password: "{{ vmware_api_password }}"
+    validate_certs: "{{ vmware_api_validate_certs }}"
+    datacenter: "{{ build.vmware.create.datacenter }}"
+    src: "{{ isofile.path }}"
+    datastore: "{{ ks_ds }}"
+    path: "{{ ks_path }}"
