@@ -1,1 +1,46 @@
 servers:
+  - iwdc2repo04.iwater.ie:
+      user: root
+      basearch: x86_64
+      releasever: '9'
+      repos:
+        rhel-9-for-x86_64-appstream-rpms: /var/www/repos/content/current
+        rhel-9-for-x86_64-baseos-rpms: /var/www/repos/content/current
+        codeready-builder-for-rhel-9-x86_64-rpms: /var/www/repos/content/current
+  - iwdc1repo03.iwater.ie:
+      user: root
+      basearch: x86_64
+      releasever: '8'
+      repos:
+        rhel-8-for-x86_64-appstream-rpms: /var/www/repos/content/current
+        rhel-8-for-x86_64-baseos-rpms: /var/www/repos/content/current
+        codeready-builder-for-rhel-8-x86_64-rpms: /var/www/repos/content/current
+  - iwdc1repo01.iwater.ie:
+      user: root
+      basearch: x86_64
+      releasever: '7Server'
+      repos:
+        rhel-7-server-rpms: /var/www/repos/content/current
+        rhel-7-server-optional-rpms: /var/www/repos/content/current
+        rhel-7-server-extras-rpms: /var/www/repos/content/current
+        rhel-7-server-supplementary-rpms: /var/www/repos/content/current
+        rhel-server-rhscl-7-rpms: /var/www/repos/content/current
+        rhel-7-server-els-rpms: /var/www/repos/content/current
+        rhel-7-server-els-optional-rpms: /var/www/repos/content/current
+  - iwdc2repo02.iwater.ie:
+      user: root
+      basearch: x86_64
+      releasever: '6Server'
+      repos:
+        rhel-6-server-extras-rpms: /var/www/repos/content/current
+        rhel-6-server-optional-rpms: /var/www/repos/content/current
+        rhel-6-server-rpms: /var/www/repos/content/current
+        rhel-6-server-supplementary-rpms: /var/www/repos/content/current
+        rhel-server-rhscl-6-rpms: /var/www/repos/content/current
+        rhel-6-server-els-optional-rpms: /var/www/repos/content/current
+        rhel-6-server-els-rpms: /var/www/repos/content/current
+
+content:
+  store: '/var/www/repos/packages'
+
+proxy: 'http://eproxy-uisceeireann.goskope.com:8081'
