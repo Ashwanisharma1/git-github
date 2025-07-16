@@ -1,0 +1,145 @@
+Lun Expansion in 3PAR:: 
+
+ 
+
+ 
+
+Expanding a LUN (Logical Unit Number) in an HPE 3PAR storage system is a common task to increase the size of a virtual volume. Below is a concise guide to help you through the process: 
+
+ 
+
+Steps to Expand a LUN in HPE 3PAR 
+
+1. Check the Current LUN Size 
+
+Log in to the 3PAR Management Console or CLI. 
+
+Use the following CLI command to check the current size of the LUN: 
+
+Copy the code showvv <LUN_name> 
+
+This will display the details of the virtual volume, including its current size. 
+
+ 
+
+ 
+
+2. Check whether there is enough space in CPG using “showcpg “ cmd.  
+
+ 
+
+ 
+
+3. Expand the LUN 
+
+To resize the LUN, use the growvv command in the CLI: 
+
+Copy the code growvv  <LUN_name> <size> 
+
+Replace <new_size> with the desired size (e.g., 500G or 1T). 
+
+Replace <LUN_name> with the name of the LUN you want to expand. 
+
+ 
+
+4. Verify the Changes 
+
+After resizing, verify the new size using: 
+
+Copy the code showvv <LUN_name> 
+
+ 
+
+5. Update the Host System 
+
+On the host system (e.g., Windows, Linux, VMware), rescan the storage to detect the updated LUN size. 
+
+For example:  
+
+Linux: Use rescan-scsi-bus.sh or manually rescan the SCSI bus. 
+
+Windows: Use Disk Management to rescan disks. 
+
+VMware: Rescan the storage adapters in vSphere. 
+
+6. Extend the Filesystem (if applicable) 
+
+If the LUN is already in use, extend the filesystem to utilize the additional space:  
+
+Linux: Use resize2fs (ext4) or xfs_growfs (XFS). 
+
+Windows: Use Disk Management or diskpart. 
+
+VMware: Extend the datastore via vSphere. 
+
+ 
+
+Important Notes 
+
+Ensure you have a backup of critical data before making changes. 
+
+Confirm there is sufficient free space in the 3PAR CPG (Common Provisioning Group) to accommodate the LUN expansion. 
+
+If the LUN is part of a cluster or shared storage, coordinate with the relevant teams to avoid disruptions. 
+
+Let me know if you'd like further clarification or assistance! 😊 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+FLOWCHART :: 
+
+  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+s 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
