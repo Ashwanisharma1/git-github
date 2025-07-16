@@ -1,0 +1,121 @@
+3PAR Storage New Lun Allocation.  
+
+ 
+
+Allocating a LUN (Logical Unit Number) in an HPE 3PAR storage system involves creating a virtual volume and exporting it to a host or host group. Here's a concise guide to help you: 
+
+Shape 
+
+Steps to Allocate a LUN in HPE 3PAR. 
+
+ 
+
+Check the available space using the cmd “showcpg” 
+
+ 
+
+ 
+
+2 Create a Virtual Volume (VV) 
+
+Command Line Interface (CLI): 
+
+Copy the code createvv <cpg_name> <volume_name> <size> 
+
+ 
+
+Example: 
+
+Copy the code createvv CPG1 MyVolume 100G 
+
+<cpg_name>: The Common Provisioning Group (CPG) where the volume will reside. 
+
+<volume_name>: Name of the virtual volume. 
+
+<size>: Size of the volume (e.g., 100G for 100 GB). 
+
+Management Console (GUI): 
+
+Navigate to Provisioning → Virtual Volumes. 
+
+Click Create. 
+
+Fill in the required details (CPG, size, etc.) and save. 
+
+Shape 
+
+2. Export the Virtual Volume to a Host 
+
+CLI: 
+
+Copy the code createvlun <volume_name> <lun_id> <host_name> 
+
+ 
+
+Example: 
+
+Copy the codecreatevlun MyVolume 1 MyHost 
+
+<lun_id>: Logical Unit Number (e.g., 1). 
+
+<host_name>: Name of the host to which the LUN is being assigned. 
+
+GUI: 
+
+Go to Hosts → Host Sets or Hosts. 
+
+Select the host or host group. 
+
+Click Export Volume and choose the virtual volume. 
+
+Assign a LUN ID and save. 
+
+Shape 
+
+3. Verify the LUN Allocation 
+
+CLI: 
+
+Copy the code showvlun 
+
+This will display all exported volumes and their associated hosts. 
+
+GUI: 
+
+Navigate to Hosts → Host Sets or Hosts. 
+
+Check the exported volumes for the selected host. 
+
+Shape 
+
+Additional Notes 
+
+Ensure the host is already configured in the 3PAR system with its WWN or iSCSI IQN. 
+
+Use appropriate CPGs based on performance and storage requirements (e.g., SSD, FC, NL). 
+
+Always double-check the LUN ID to avoid conflicts. 
+
+Let me know if you need further clarification or assistance! 😊 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+FLOWCHART 
+
+ 
+
+Oval 28, TextboxText Box 45, TextboxText Box 46, TextboxRectangle 26, TextboxDiamond 10, TextboxRectangle 12, TextboxRectangle 20, TextboxRectangle 8, TextboxRectangle 4, TextboxRectangle 3, TextboxOval 1, Textbox  
+
+ 
+
+ 
+
+Rectangle 27, Textbox 
