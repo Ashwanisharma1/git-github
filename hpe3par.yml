@@ -1,0 +1,66 @@
+Vars.yml
+volume_size: 500G
+volume_name: appvol01
+host_name: apphost01
+cpg_usage_threshold: 80
+========
+main.yml
+- name: Create and export HPE 3PAR volume
+  hosts: 3par
+  gather_facts: no
+  vars_files:
+    - vars.yml
+
+  tasks:
+
+    - name: Get CPG usage info
+      shell: showcpg -sdg
+      register: cpg_raw
+
+    - name: Parse CPG info to find best candidate
+      set_fact:
+        best_cpg: >-
+          {{
+            cpg_raw.stdout_lines |
+            select('match', '^\\S+') |
+            map('regex_search', '^(\\S+)\\s+.*\\s+(\\d+(\\.\\d+)?)\\s+GiB\\s+(\\d+(\\.\\d+)?)%') |
+            map('first') |
+            selectattr(3, 'float') |
+            rejectattr(3, 'ge', cpg_usage_threshold|float) |
+            sort(attribute=1, reverse=True) |
+            map('first') | list | first
+          }}
+
+    - name: Fail if no CPG available under usage threshold
+      fail:
+        msg: "No CPG found with free space under {{ cpg_usage_threshold }}% usage."
+      when: best_cpg is not defined or best_cpg == ""
+
+    - name: Debug selected CPG
+      debug:
+        msg: "Selected CPG for volume creation is {{ best_cpg }}"
+
+    - name: Create volume on 3PAR
+      shell: "createvv {{ best_cpg }} {{ volume_name }} {{ volume_size }}"
+      register: vv_create
+
+    - name: Get next available LUN ID
+      shell: showvlun -a
+      register: vlun_list
+
+    - name: Extract used LUN IDs and determine next free
+      set_fact:
+        used_luns: "{{ vlun_list.stdout_lines | select('search', '\\s+LUN\\s+\\d+') | map('regex_search', '\\bLUN\\s+(\\d+)') | map('first') | map('int') | list }}"
+        next_lun_id: "{{ ((used_luns | max) + 1) if used_luns | length > 0 else 1 }}"
+
+    - name: Debug next LUN ID
+      debug:
+        msg: "Next available LUN ID: {{ next_lun_id }}"
+
+    - name: Export volume to host
+      shell: "createvlun {{ volume_name }} auto {{ host_name }} {{ next_lun_id }}"
+      register: vlun_create
+
+    - name: Confirm volume export
+      debug:
+        var: vlun_create.stdout_lines
