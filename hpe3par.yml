@@ -17,6 +17,25 @@ main.yml
       shell: showcpg -sdg
       register: cpg_raw
 
+    - name: Parse showcpg and find best CPG
+      set_fact:
+        best_cpg: >-
+          {{
+            cpg_output.stdout_lines
+            | select('match', '^\\d+\\s+\\S+.*')          # filter only CPG lines
+        | map('regex_replace', '\\s+', ' ')           # normalize spacing
+        | map('split', ' ')                           # split each line by space
+        | map('extract', [1, -2, -1])                 # get: [CPG_NAME, FREE, TOTAL]
+        | map('map', 'int', [1,2])                    # convert FREE and TOTAL to int
+        | map('combine', ['name', 'free', 'total'])   # convert list to dict
+        | map('combine', {'name': 'name', 'free': 'free', 'total': 'total'})
+        | map('combine', {'usage_pct': lambda cpg: (100 - (cpg.free * 100 / cpg.total) | int)})
+        | selectattr('usage_pct', 'lt', 80)           # filter where usage % < 80
+        | sort(attribute='free', reverse=True)        # sort by most free
+        | first                                        # pick the top one
+      }}
+
+--------------------------------------------------------------------
     - name: Parse CPG info to find best candidate
       set_fact:
         best_cpg: >-
