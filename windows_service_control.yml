@@ -1,11 +1,11 @@
 ---
-- name: Start / Stop / Restart a Windows Service (Single Service)
+- name: Start / Stop / Restart a Windows Service
   hosts: all
   gather_facts: false
 
   vars:
-    service_name: ""           # From AAP survey — e.g., "ccmexec"
-    service_action: ""         # From AAP survey — start / stop / restart
+    service_name: ""         
+    service_action: ""
 
   tasks:
     - name: Perform '{{ service_action }}' on {{ service_name }}
@@ -40,4 +40,4 @@
       rescue:
         - name: Log failure for service {{ service_name }}
           debug:
-            msg: "❌ Failed to {{ service_action }} service: {{ service_name }}"
+            msg: "Failed to {{ service_action }} service: {{ service_name }}"
