@@ -1,0 +1,57 @@
+Allow the user to:
+Pass a comma-separated list of Windows services (e.g., ccmexec,WinRM)
+
+Choose whether to start, stop, or restart each service
+(All done via Survey at runtime — no need to edit the playbook!)
+
+---
+- name: Start / Stop / Restart Windows Services Dynamically
+  hosts: windows
+  gather_facts: false
+
+  vars:
+    service_list_raw: ""       # Comma-separated list from survey, e.g., "ccmexec,WinRM"
+    service_action: ""         # One of: start / stop / restart, from survey
+
+  pre_tasks:
+    - name: Convert service list to actual list
+      set_fact:
+        service_list: "{{ service_list_raw.split(',') | map('trim') | list }}"
+
+  tasks:
+    - name: Handle Windows service actions dynamically
+      block:
+        - name: Stop service {{ item }}
+          ansible.windows.win_service:
+            name: "{{ item }}"
+            state: stopped
+          when: service_action in ['stop', 'restart']
+
+        - name: Wait for 5 seconds before starting service {{ item }}
+          pause:
+            seconds: 5
+          when: service_action == 'restart'
+
+        - name: Start service {{ item }}
+          ansible.windows.win_service:
+            name: "{{ item }}"
+            state: started
+          when: service_action in ['start', 'restart']
+
+        - name: Get status of {{ item }}
+          ansible.windows.win_service_info:
+            name: "{{ item }}"
+          register: service_status
+
+        - name: Show final status of {{ item }}
+          debug:
+            msg: "{{ item }} is now {{ service_status.services[0].state }}"
+
+      rescue:
+        - name: Print failure for {{ item }}
+          debug:
+            msg: "❌ Failed to {{ service_action }} service: {{ item }}"
+
+      loop: "{{ service_list }}"
+      loop_control:
+        label: "{{ item }}"
