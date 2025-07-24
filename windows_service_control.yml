@@ -1,53 +1,43 @@
-SSH password: 
-ERROR! 'loop' is not a valid attribute for a Block
-The error appears to be in '/runner/project/sccm_start_stop.yml': line 9, column 7, but may
-be elsewhere in the file depending on the exact syntax problem.
-The offending line appears to be:
-  tasks:
-    - name: Perform service actions on each item
-      ^ here
-
-- name: Handle Windows service actions
+---
+- name: Start / Stop / Restart a Windows Service (Single Service)
   hosts: all
-  gather_facts: no
+  gather_facts: false
+
   vars:
-    service_list: ["Spooler", "BITS"]
-    service_action: restart
+    service_name: ""           # From AAP survey — e.g., "ccmexec"
+    service_action: ""         # From AAP survey — start / stop / restart
 
   tasks:
-    - name: Perform service actions on each item
+    - name: Perform '{{ service_action }}' on {{ service_name }}
       block:
-        - name: Stop service {{ item }}
+
+        - name: Stop service {{ service_name }}
           ansible.windows.win_service:
-            name: "{{ item }}"
+            name: "{{ service_name }}"
             state: stopped
           when: service_action in ['stop', 'restart']
 
-        - name: Wait 5 seconds before starting service {{ item }}
+        - name: Wait 5 seconds before starting {{ service_name }}
           pause:
             seconds: 5
           when: service_action == 'restart'
 
-        - name: Start service {{ item }}
+        - name: Start service {{ service_name }}
           ansible.windows.win_service:
-            name: "{{ item }}"
+            name: "{{ service_name }}"
             state: started
           when: service_action in ['start', 'restart']
 
-        - name: Get status of {{ item }}
+        - name: Get status of service {{ service_name }}
           ansible.windows.win_service_info:
-            name: "{{ item }}"
+            name: "{{ service_name }}"
           register: service_status
 
-        - name: Show final status of {{ item }}
+        - name: Show final status of {{ service_name }}
           debug:
-            msg: "{{ item }} is now {{ service_status.services[0].state }}"
+            msg: "{{ service_name }} is now {{ service_status.services[0].state }}"
 
       rescue:
-        - name: Print failure for {{ item }}
+        - name: Log failure for service {{ service_name }}
           debug:
-            msg: "❌ Failed to {{ service_action }} service: {{ item }}"
-
-      loop: "{{ service_list }}"
-      loop_control:
-        label: "{{ item }}"
+            msg: "❌ Failed to {{ service_action }} service: {{ service_name }}"
