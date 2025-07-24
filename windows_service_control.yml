@@ -1,25 +1,21 @@
-Allow the user to:
-Pass a comma-separated list of Windows services (e.g., ccmexec,WinRM)
+SSH password: 
+ERROR! 'loop' is not a valid attribute for a Block
+The error appears to be in '/runner/project/sccm_start_stop.yml': line 9, column 7, but may
+be elsewhere in the file depending on the exact syntax problem.
+The offending line appears to be:
+  tasks:
+    - name: Perform service actions on each item
+      ^ here
 
-Choose whether to start, stop, or restart each service
-(All done via Survey at runtime — no need to edit the playbook!)
-
----
-- name: Start / Stop / Restart Windows Services Dynamically
-  hosts: windows
-  gather_facts: false
-
+- name: Handle Windows service actions
+  hosts: all
+  gather_facts: no
   vars:
-    service_list_raw: ""       # Comma-separated list from survey, e.g., "ccmexec,WinRM"
-    service_action: ""         # One of: start / stop / restart, from survey
-
-  pre_tasks:
-    - name: Convert service list to actual list
-      set_fact:
-        service_list: "{{ service_list_raw.split(',') | map('trim') | list }}"
+    service_list: ["Spooler", "BITS"]
+    service_action: restart
 
   tasks:
-    - name: Handle Windows service actions dynamically
+    - name: Perform service actions on each item
       block:
         - name: Stop service {{ item }}
           ansible.windows.win_service:
@@ -27,7 +23,7 @@ Choose whether to start, stop, or restart each service
             state: stopped
           when: service_action in ['stop', 'restart']
 
-        - name: Wait for 5 seconds before starting service {{ item }}
+        - name: Wait 5 seconds before starting service {{ item }}
           pause:
             seconds: 5
           when: service_action == 'restart'
