@@ -1,12 +1,16 @@
 ---
-- name: Start / Stop / Restart a Windows Service
-  hosts: all
+- name: Dynamically add windows host 
+  hosts: localhost
   gather_facts: false
-
-  vars:
-    service_name: ""         
-    service_action: ""
-
+  tasks:
+    - name: Add target host to dynamic group
+      add_host:
+        name: "{{ target_host }}"
+        groups: dynamic_group
+        
+- name: Start / Stop / Restart a Windows Service
+  hosts: dynamic_group
+  gather_facts: false
   tasks:
     - name: Perform '{{ service_action }}' on {{ service_name }}
       block:
